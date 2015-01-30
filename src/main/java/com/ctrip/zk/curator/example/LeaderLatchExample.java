@@ -50,7 +50,8 @@ public class LeaderLatchExample {
 					.println("Client #0 maybe is elected as the leader or not although it want to be");
 			System.out.println("the new leader is "
 					+ examples.get(0).getLeader().getId());
-
+			System.out.println("Participants: "
+					+ examples.get(0).getParticipants());
 			System.out.println("Press enter/return to quit\n");
 			new BufferedReader(new InputStreamReader(System.in)).readLine();
 

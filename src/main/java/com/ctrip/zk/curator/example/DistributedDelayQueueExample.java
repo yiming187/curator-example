@@ -17,7 +17,7 @@ import org.apache.curator.utils.CloseableUtils;
 public class DistributedDelayQueueExample {
 	private static final String PATH = "/example/queue";
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 		String zkConnString = "127.0.0.1:2181";
 		CuratorFramework client = null;
 		DistributedDelayQueue<String> queue = null;

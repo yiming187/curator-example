@@ -20,9 +20,38 @@ public class CrudExample {
 			client = CuratorFrameworkFactory.newClient(zkConnString,
 					new ExponentialBackoffRetry(1000, 3));
 			client.start();
-			create(client, "/example/a", "a is a node".getBytes());
-			delete(client, "/example/a");
-			createEphemeralSequential(client, "/example/b", "b is ephemeral node".getBytes());
+			if (client.checkExists().forPath("/crud") != null) {
+				delete(client, "/crud");
+			}
+			create(client, "/crud/a", "a is a node".getBytes());
+			System.out.println("/crud/a : "
+					+ new String(client.getData().forPath("/crud/a")));
+
+			String nodeBPath = createEphemeralSequential(client, "/crud/b",
+					"b is ephemeral node".getBytes());
+			System.out.println("/crud/b : "
+					+ new String(client.getData().forPath(nodeBPath)));
+
+			setDataAsync(client, "/crud/a", "a is async updated".getBytes());
+
+			setDataAsyncWithCallback(client, new BackgroundCallback() {
+
+				@Override
+				public void processResult(CuratorFramework client,
+						CuratorEvent event) throws Exception {
+					System.out.println("setDataAsyncWithCallback: " + event);
+				}
+
+			}, "/crud/a", "a is callback updated".getBytes());
+
+			List<String> watched = watchedGetChildren(client, "/crud");
+			System.out.println(watched);
+
+			createEphemeral(client, "/crud/c", "c is a new node".getBytes());
+			watched = watchedGetChildren(client, "/crud");
+			System.out.println(watched);
+
+			delete(client, "/crud");
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
@@ -33,20 +62,21 @@ public class CrudExample {
 	public static void create(CuratorFramework client, String path,
 			byte[] payload) throws Exception {
 		// this will create the given ZNode with the given data
-		client.create().forPath(path, payload);
+		client.create().creatingParentsIfNeeded().forPath(path, payload);
 	}
 
 	public static void createEphemeral(CuratorFramework client, String path,
 			byte[] payload) throws Exception {
 		// this will create the given EPHEMERAL ZNode with the given data
-		client.create().withMode(CreateMode.EPHEMERAL).forPath(path, payload);
+		client.create().creatingParentsIfNeeded()
+				.withMode(CreateMode.EPHEMERAL).forPath(path, payload);
 	}
 
 	public static String createEphemeralSequential(CuratorFramework client,
 			String path, byte[] payload) throws Exception {
 		// this will create the given EPHEMERAL-SEQUENTIAL ZNode with the given
 		// data using Curator protection.
-		return client.create().withProtection()
+		return client.create().creatingParentsIfNeeded().withProtection()
 				.withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
 				.forPath(path, payload);
 	}
@@ -64,7 +94,7 @@ public class CrudExample {
 			@Override
 			public void eventReceived(CuratorFramework client,
 					CuratorEvent event) throws Exception {
-				// examine event for details
+				System.out.println("setDataAsync: " + event);
 			}
 		};
 		client.getCuratorListenable().addListener(listener);
@@ -84,7 +114,7 @@ public class CrudExample {
 	public static void delete(CuratorFramework client, String path)
 			throws Exception {
 		// delete the given node
-		client.delete().forPath(path);
+		client.delete().deletingChildrenIfNeeded().forPath(path);
 	}
 
 	public static void guaranteedDelete(CuratorFramework client, String path)
@@ -109,4 +139,5 @@ public class CrudExample {
 		 */
 		return client.getChildren().usingWatcher(watcher).forPath(path);
 	}
+
 }
